@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, AsyncStorage } from 'react-native';
 import MapView from 'react-native-maps';
-import Marker from 'react-native-maps';
 
 
 export default class App extends React.Component {
@@ -11,24 +10,64 @@ export default class App extends React.Component {
     this.state = ({
       latitude: 0,
       longitude: 0,
-      markers:[],
+      markers: [],
+      dataStorage: []
     })
     this.handlePress = this.handlePress.bind(this);
   }
 
-  handlePress(e){
+
+
+  _retrieveData = async () => {
+    try {
+      const value = await AsyncStorage.getItem('markers');
+      if (value !== null) {
+        console.log(value)
+        this.setState({
+          markers: JSON.parse(value),
+        })
+      }
+    } catch (error) {
+      console.log('erreur')
+    }
+  };
+
+
+  componentDidMount() {
+    this._retrieveData();
+  }
+
+  componentDidUpdate() {
+    this._storeData();
+  }
+
+  _storeData = async () => {
+    try {
+      await AsyncStorage.setItem('markers', JSON.stringify( this.state.markers));
+    } catch (error) {
+      console.log('erreur de sauvegarde')
+    }
+  };
+
+  handlePress(e) {
 
     let m = {
-      coordinates : {
+      coordinates: {
         latitude: e.nativeEvent.coordinate.latitude,
         longitude: e.nativeEvent.coordinate.longitude
       }
     }
+    // this.setState({markers: [...this.state.markers, m]})
     this.state.markers.push(m)
     this.forceUpdate()
   }
+
+
+
+
   render() {
-    console.log(this.state.markers)
+
+    
     return (
       <View style={styles.container}>
         <MapView style={StyleSheet.absoluteFillObject}
@@ -38,22 +77,18 @@ export default class App extends React.Component {
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
-          onLongPress={(e) => {
-            {
-              this.handlePress(e)
-              alert('test')
-              {
-                {this.state.markers.map(marker => (
-                  <MapView.Marker
-                  coordinate={marker.coordinate}
-                  />
-                ))}
-                  
-              }
-            }
-          }}
+          onLongPress={(e) => { this.handlePress(e) }}>
+          {
+            this.state.markers.map((marker, i) => (
+              // console.log(marker.coordinates),
+              <MapView.Marker
+                key={i}
+                coordinate={marker.coordinates}
+              />
 
-        />
+            ))
+          }
+        </MapView>
       </View>
     );
   }
